@@ -46,6 +46,9 @@
             this.wb_optionb = new System.Windows.Forms.WebBrowser();
             this.wb_optionc = new System.Windows.Forms.WebBrowser();
             this.wb_optiond = new System.Windows.Forms.WebBrowser();
+            this.btn_smartpaste = new System.Windows.Forms.Button();
+            this.label6 = new System.Windows.Forms.Label();
+            this.btn_passage = new System.Windows.Forms.Button();
             this.SuspendLayout();
             // 
             // btn_addupdate
@@ -218,11 +221,43 @@
             this.wb_optiond.TabIndex = 16;
             this.wb_optiond.Visible = false;
             // 
+            // btn_smartpaste
+            // 
+            this.btn_smartpaste.Location = new System.Drawing.Point(336, 400);
+            this.btn_smartpaste.Name = "btn_smartpaste";
+            this.btn_smartpaste.Size = new System.Drawing.Size(120, 43);
+            this.btn_smartpaste.TabIndex = 17;
+            this.btn_smartpaste.Text = "Smart Paste";
+            this.btn_smartpaste.UseVisualStyleBackColor = true;
+            this.btn_smartpaste.Click += new System.EventHandler(this.button1_Click);
+            // 
+            // label6
+            // 
+            this.label6.AutoSize = true;
+            this.label6.Location = new System.Drawing.Point(59, 400);
+            this.label6.Name = "label6";
+            this.label6.Size = new System.Drawing.Size(35, 13);
+            this.label6.TabIndex = 18;
+            this.label6.Text = "label6";
+            // 
+            // btn_passage
+            // 
+            this.btn_passage.Location = new System.Drawing.Point(178, 402);
+            this.btn_passage.Name = "btn_passage";
+            this.btn_passage.Size = new System.Drawing.Size(135, 41);
+            this.btn_passage.TabIndex = 19;
+            this.btn_passage.Text = "Insert Passage";
+            this.btn_passage.UseVisualStyleBackColor = true;
+            this.btn_passage.Click += new System.EventHandler(this.btn_passage_Click);
+            // 
             // Question
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(740, 456);
+            this.Controls.Add(this.btn_passage);
+            this.Controls.Add(this.label6);
+            this.Controls.Add(this.btn_smartpaste);
             this.Controls.Add(this.wb_optiond);
             this.Controls.Add(this.wb_optionc);
             this.Controls.Add(this.wb_optionb);
@@ -268,5 +303,8 @@
         private System.Windows.Forms.WebBrowser wb_optionb;
         private System.Windows.Forms.WebBrowser wb_optionc;
         private System.Windows.Forms.WebBrowser wb_optiond;
+        private System.Windows.Forms.Button btn_smartpaste;
+        private System.Windows.Forms.Label label6;
+        private System.Windows.Forms.Button btn_passage;
     }
 }

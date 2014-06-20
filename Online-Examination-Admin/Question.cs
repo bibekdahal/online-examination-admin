@@ -74,7 +74,9 @@ namespace Online_Examination_Admin
                 btn_next.Enabled = false;
                 btn_addupdate.Text = "Add";
                 btn_addupdate.Visible = true;
-                rtb_question.Text = rtb_optiona.Text = rtb_optionb.Text = rtb_optionc.Text = rtb_optiond.Text = "";
+                btn_smartpaste.Visible = true;
+                btn_passage.Visible = false;
+                rtb_question.Rtf = rtb_optiona.Rtf = rtb_optionb.Rtf = rtb_optionc.Rtf = rtb_optiond.Rtf = "";
                 rtb_question.Visible = rtb_optiona.Visible = rtb_optionb.Visible = rtb_optionc.Visible = rtb_optiond.Visible = true;
                 wb_question.Visible = wb_optiona.Visible = wb_optionb.Visible = wb_optionc.Visible = wb_optiond.Visible = false;
             }
@@ -84,12 +86,16 @@ namespace Online_Examination_Admin
                 btn_next.Enabled = true;
                 btn_addupdate.Text = "Update";
                 btn_addupdate.Visible = false;
+                btn_smartpaste.Visible = false;
+                btn_passage.Visible = true;
                 rtb_question.Visible = rtb_optiona.Visible = rtb_optionb.Visible = rtb_optionc.Visible = rtb_optiond.Visible = false;
                 wb_question.Visible = wb_optiona.Visible = wb_optionb.Visible = wb_optionc.Visible = wb_optiond.Visible = true;
             }
 
             if (m_currentid <= 0) btn_prev.Enabled = false;
             else btn_prev.Enabled = true;
+
+            label6.Text = "SetId: " + m_setid.ToString() + "S.N.: " + (m_currentid + 1).ToString();
         }
 
         private void btn_prev_Click(object sender, EventArgs e)
@@ -148,11 +154,32 @@ namespace Online_Examination_Admin
             }
         }
 
+        public void InsertPassage(RichTextBox rtf)
+        {
+            NameValueCollection data = new NameValueCollection();
+            data["setid"] = m_setid.ToString();
+            data["qsn"] = (m_currentid + 1).ToString();
+            imgcnt = 0;
+            string imagefolder = m_setid.ToString() + "acnsj";
+            string imgdir = "images/" + imagefolder;
+            if (!System.IO.Directory.Exists(imgdir))
+                System.IO.Directory.CreateDirectory(imgdir);
+            else
+                Array.ForEach(Directory.GetFiles(imgdir), File.Delete);
+            data["passage"] = ConvertRtfToHtml(rtf, imagefolder, (m_currentid + 1).ToString() + "psx");
+            string response = Post(ADDR + "admin/addpassage.php", data);
+
+            NameValueCollection data1 = new NameValueCollection();
+            data1["setid"] = m_setid.ToString();
+            string[] fileEntries = Directory.GetFiles(imgdir);
+            foreach (string fileName in fileEntries)
+                UploadImage(ADDR + "admin/addimage.php", fileName, data1);
+        }
 
         public string ConvertRtfToHtml(RichTextBox rtf, string imagefolder, string imagefnameprefix)
         {
             //string imgdir = "D:/wamp/www/online-examination/";
-            bool b = false, i = false, u = false;
+            bool b = false, i = false, u = false, sup=false, sub=false;
             string html = "";
             int x = 0;
             while (x < rtf.Text.Length)
@@ -174,6 +201,16 @@ namespace Online_Examination_Admin
                 else if (i)
                 { html += "</i>"; i = false; }
 
+                if (rtf.SelectionCharOffset > 0)
+                { if (!sup) { html += "<sup>"; sup = true; } }
+                else if (sup)
+                { html += "</sup>"; sup = false; }
+
+                if (rtf.SelectionCharOffset < 0)
+                { if (!sub) { html += "<sub>"; sub = true; } }
+                else if (sub)
+                { html += "</sub>"; sub = false; }
+
                 if (rtf.SelectedRtf.Contains(@"\pict"))
                 {
                     int width = 0, height = 0;
@@ -191,7 +228,7 @@ namespace Online_Examination_Admin
                         string imgpath = imgdir + "/" + imagefnameprefix + imgcnt.ToString() + ".png";
                         newimage.Save(imgpath, System.Drawing.Imaging.ImageFormat.Png);
                         imgcnt++;
-                        html += "<img src=\"" + imgpath + "\" />";
+                        html += "<img src=\"" + imgpath + "\" style=\"vertical-align:middle;\"/>";
                     }
 
                 }
@@ -201,8 +238,15 @@ namespace Online_Examination_Admin
                     html += "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;";
                 else
                     html += WebUtility.HtmlEncode(rtf.SelectedText);
+                html.Replace("&#199;", "&#8745;");
+                html.Replace("&#200;", "&#8746;");
                 x++;
             }
+            if (b) html += "</strong>";
+            if (i) html += "</i>";
+            if (u) html += "</u>";
+            if (sup) html += "</sup>";
+            if (sub) html += "</sub>";
             return html;
         }
 
@@ -400,6 +444,40 @@ namespace Online_Examination_Admin
                 return Encoding.UTF8.GetString(stream.ToArray());
             }
         }
+
+        private void button1_Click(object sender, EventArgs e)
+        {
+            rtb_question.Paste();
+            int id = rtb_question.Text.IndexOf("\ta)");
+            rtb_question.Select(0, id);
+            string question = rtb_question.SelectedRtf;
+            int nid = rtb_question.Text.IndexOf("\tb)");
+            rtb_question.Select(id + "\ta) ".Length, nid - (id + "\ta) ".Length));
+            rtb_optiona.Rtf = rtb_question.SelectedRtf;
+
+            id = nid;
+            nid = rtb_question.Text.IndexOf("\tc)");
+            rtb_question.Select(id + "\tb) ".Length, nid - (id + "\tb) ".Length));
+            rtb_optionb.Rtf = rtb_question.SelectedRtf;
+
+            id = nid;
+            nid = rtb_question.Text.IndexOf("\td)");
+            rtb_question.Select(id + "\tc) ".Length, nid - (id + "\tc) ".Length));
+            rtb_optionc.Rtf = rtb_question.SelectedRtf;
+
+            id = nid;
+            rtb_question.Select(id + "\td) ".Length, rtb_question.Text.Length - (id + "\td) ".Length));
+            rtb_optiond.Rtf = rtb_question.SelectedRtf;
+
+            rtb_question.Rtf = question;
+        }
+
+        private void btn_passage_Click(object sender, EventArgs e)
+        {
+            Passage passage = new Passage(this);
+            passage.ShowDialog();
+        }
+
     }
 
 }

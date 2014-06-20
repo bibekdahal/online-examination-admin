@@ -37,10 +37,15 @@ namespace Online_Examination_Admin
 
         void UpdateUI()
         {
-            string numsets = GetResponse(ADDR + "admin/getsets.php");
-            int nsets = Convert.ToInt32(numsets);
             cb_sets.Items.Clear();
-            for (int i = 1; i <= nsets; ++i) cb_sets.Items.Add(i);
+            string setids = GetResponse(ADDR + "admin/showsetids.php");
+            string[] lines = setids.Split(new string[] { "<br/>" }, StringSplitOptions.None);
+            foreach (string setid in lines)
+            {
+                if (setid == "") continue;
+                int id = Convert.ToInt32(setid);
+                cb_sets.Items.Add(id);
+            }
             if (cb_sets.Items.Count > 0) { cb_sets.SelectedIndex = 0; button1.Enabled = true; }
             else button1.Enabled = false;
         }
