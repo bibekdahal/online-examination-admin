@@ -11,6 +11,7 @@ using System.Threading.Tasks;
 using System.Windows.Forms; 
 using System.Collections.Specialized;
 using System.Globalization;
+using mshtml;
 
 namespace Online_Examination_Admin
 {
@@ -60,6 +61,18 @@ namespace Online_Examination_Admin
                 wb_optionb.Navigate(url + "&optid=1");
                 wb_optionc.Navigate(url + "&optid=2");
                 wb_optiond.Navigate(url + "&optid=3");
+                
+                NameValueCollection data = new NameValueCollection();
+                data["setid"] = m_setid.ToString();
+                data["qsn"] = (m_currentid + 1).ToString();
+                int answer = Convert.ToInt32(Post(ADDR + "admin/getanswer.php", data));
+                switch(answer)
+                {
+                    case 0: radioButton1.Checked = true; break;
+                    case 1: radioButton2.Checked = true; break;
+                    case 2: radioButton3.Checked = true; break;
+                    case 3: radioButton4.Checked = true; break;
+                }
             }
         }
 
@@ -68,34 +81,35 @@ namespace Online_Examination_Admin
             NameValueCollection data = new NameValueCollection();
             data["setid"] = m_setid.ToString();
             m_numquestions = Convert.ToInt32(Post(ADDR + "admin/getqns.php", data));
-
+            btn_done.Visible = false;
             if (m_currentid >= m_numquestions)
             {
                 btn_next.Enabled = false;
                 btn_addupdate.Text = "Add";
-                btn_addupdate.Visible = true;
                 btn_smartpaste.Visible = true;
                 btn_passage.Visible = false;
                 rtb_question.Rtf = rtb_optiona.Rtf = rtb_optionb.Rtf = rtb_optionc.Rtf = rtb_optiond.Rtf = "";
                 rtb_question.Visible = rtb_optiona.Visible = rtb_optionb.Visible = rtb_optionc.Visible = rtb_optiond.Visible = true;
                 wb_question.Visible = wb_optiona.Visible = wb_optionb.Visible = wb_optionc.Visible = wb_optiond.Visible = false;
+                radioButton1.Checked = true; radioButton2.Checked = radioButton3.Checked = radioButton4.Checked = false;
+                btn_clear.Visible = true;
             }
             else
             {
                 UpdateData();
                 btn_next.Enabled = true;
                 btn_addupdate.Text = "Update";
-                btn_addupdate.Visible = false;
                 btn_smartpaste.Visible = false;
                 btn_passage.Visible = true;
                 rtb_question.Visible = rtb_optiona.Visible = rtb_optionb.Visible = rtb_optionc.Visible = rtb_optiond.Visible = false;
                 wb_question.Visible = wb_optiona.Visible = wb_optionb.Visible = wb_optionc.Visible = wb_optiond.Visible = true;
+                btn_clear.Visible = false;
             }
 
             if (m_currentid <= 0) btn_prev.Enabled = false;
             else btn_prev.Enabled = true;
 
-            label6.Text = "SetId: " + m_setid.ToString() + "S.N.: " + (m_currentid + 1).ToString();
+            label6.Text = "SetId: " + m_setid.ToString() + " S.N.: " + (m_currentid + 1).ToString();
         }
 
         private void btn_prev_Click(object sender, EventArgs e)
@@ -113,6 +127,34 @@ namespace Online_Examination_Admin
             {
                 ++m_currentid;
                 UpdateUI();
+            }
+        }
+
+        void CopyWB(WebBrowser wb, RichTextBox rtb)
+        {
+            string html = wb.DocumentText.Replace("&#8745;", "&#199;");
+            html = html.Replace("&#8746;", "&#200;");
+            wb.Navigate("about:blank");
+            wb.Document.OpenNew(false);
+            wb.Document.Write(html);
+            wb.Refresh();
+
+            IHTMLDocument2 htmlDoc = (IHTMLDocument2)wb.Document.DomDocument;
+            IHTMLBodyElement Body = htmlDoc.body as IHTMLBodyElement;
+            IHTMLTxtRange range = Body.createTextRange();
+            range.select();
+            
+            Clipboard.Clear();
+            range.execCommand("Copy", false, null);
+            rtb.Paste();
+
+            int x = 0;
+            while (x < rtb.Text.Length)
+            {
+                rtb.Select(x, 1);
+                if (rtb.SelectedRtf.Contains(@"\fs24\'c7") || rtb.SelectedRtf.Contains(@"\fs24\'c8"))
+                    rtb.SelectionFont = new Font("Symbol", rtb.SelectionFont.Size, rtb.SelectionFont.Style, rtb.SelectionFont.Unit, 2);
+                x++;
             }
         }
 
@@ -144,14 +186,98 @@ namespace Online_Examination_Admin
                 string[] fileEntries = Directory.GetFiles(imgdir);
                 foreach (string fileName in fileEntries)
                     UploadImage(ADDR + "admin/addimage.php", fileName, data1);
-                MessageBox.Show(response);
+
+                NameValueCollection data2 = new NameValueCollection();
+                data2["setid"] = m_setid.ToString();
+                data2["qsn"] = (m_currentid + 1).ToString();
+                if (radioButton1.Checked)
+                    data2["option"] = "0";
+                else if (radioButton2.Checked)
+                    data2["option"] = "1";
+                else if (radioButton3.Checked)
+                    data2["option"] = "2";
+                else if (radioButton4.Checked)
+                    data2["option"] = "3";
+                Post(ADDR + "admin/setanswer.php", data2);
+
+                //MessageBox.Show(response);
                 UpdateUI();
             }
             else
             {
-                // update
-                UpdateUI();
+                btn_addupdate.Visible = false;
+                btn_next.Visible = false;
+                btn_prev.Visible = false;
+                btn_done.Visible = true;
+
+                btn_smartpaste.Visible = true;
+                btn_passage.Visible = false;
+                rtb_question.Rtf = rtb_optiona.Rtf = rtb_optionb.Rtf = rtb_optionc.Rtf = rtb_optiond.Rtf = "";
+
+                var clipdata = Clipboard.GetDataObject();
+
+                CopyWB(wb_question, rtb_question);
+                CopyWB(wb_optiona, rtb_optiona);
+                CopyWB(wb_optionb, rtb_optionb);
+                CopyWB(wb_optionc, rtb_optionc);
+                CopyWB(wb_optiond, rtb_optiond);
+
+                Clipboard.SetDataObject(clipdata);
+
+                rtb_question.Visible = rtb_optiona.Visible = rtb_optionb.Visible = rtb_optionc.Visible = rtb_optiond.Visible = true;
+                wb_question.Visible = wb_optiona.Visible = wb_optionb.Visible = wb_optionc.Visible = wb_optiond.Visible = false;
+                btn_clear.Visible = true;
+            
             }
+        }
+
+
+        private void btn_done_Click(object sender, EventArgs e)
+        {
+            NameValueCollection data = new NameValueCollection();
+            data["setid"] = m_setid.ToString();
+            data["qsn"] = (m_currentid + 1).ToString();
+            Post(ADDR + "admin/deletequestion.php", data);
+
+            imgcnt = 0;
+            string imagefolder = m_setid.ToString() + "acnsj";
+            string imgdir = "images/" + imagefolder;
+            if (!System.IO.Directory.Exists(imgdir))
+                System.IO.Directory.CreateDirectory(imgdir);
+            else
+                Array.ForEach(Directory.GetFiles(imgdir), File.Delete);
+            data["question"] = ConvertRtfToHtml(rtb_question, imagefolder, (m_currentid + 1).ToString() + "x");
+            data["optiona"] = ConvertRtfToHtml(rtb_optiona, imagefolder, (m_currentid + 1).ToString() + "x");
+            data["optionb"] = ConvertRtfToHtml(rtb_optionb, imagefolder, (m_currentid + 1).ToString() + "x");
+            data["optionc"] = ConvertRtfToHtml(rtb_optionc, imagefolder, (m_currentid + 1).ToString() + "x");
+            data["optiond"] = ConvertRtfToHtml(rtb_optiond, imagefolder, (m_currentid + 1).ToString() + "x");
+            Post(ADDR + "admin/addquestion.php", data);
+
+            NameValueCollection data1 = new NameValueCollection();
+            data1["setid"] = m_setid.ToString();
+            string[] fileEntries = Directory.GetFiles(imgdir);
+            foreach (string fileName in fileEntries)
+                UploadImage(ADDR + "admin/addimage.php", fileName, data1);
+
+            NameValueCollection data2 = new NameValueCollection();
+            data2["setid"] = m_setid.ToString();
+            data2["qsn"] = (m_currentid + 1).ToString();
+            if (radioButton1.Checked)
+                data2["option"] = "0";
+            else if (radioButton2.Checked)
+                data2["option"] = "1";
+            else if (radioButton3.Checked)
+                data2["option"] = "2";
+            else if (radioButton4.Checked)
+                data2["option"] = "3";
+            Post(ADDR + "admin/setanswer.php", data2);
+
+            btn_addupdate.Visible = true;
+            btn_next.Visible = true;
+            btn_prev.Visible = true;
+            btn_done.Visible = false;
+            
+            UpdateUI();
         }
 
         public void InsertPassage(RichTextBox rtf)
@@ -201,12 +327,12 @@ namespace Online_Examination_Admin
                 else if (i)
                 { html += "</i>"; i = false; }
 
-                if (rtf.SelectionCharOffset > 0)
+                if (rtf.SelectedRtf.Contains(@"\super"))
                 { if (!sup) { html += "<sup>"; sup = true; } }
                 else if (sup)
                 { html += "</sup>"; sup = false; }
 
-                if (rtf.SelectionCharOffset < 0)
+                if (rtf.SelectedRtf.Contains(@"\sub"))
                 { if (!sub) { html += "<sub>"; sub = true; } }
                 else if (sub)
                 { html += "</sub>"; sub = false; }
@@ -238,8 +364,8 @@ namespace Online_Examination_Admin
                     html += "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;";
                 else
                     html += WebUtility.HtmlEncode(rtf.SelectedText);
-                html.Replace("&#199;", "&#8745;");
-                html.Replace("&#200;", "&#8746;");
+                html = html.Replace("&#199;", "&#8745;");
+                html = html.Replace("&#200;", "&#8746;");
                 x++;
             }
             if (b) html += "</strong>";
@@ -249,8 +375,6 @@ namespace Online_Examination_Admin
             if (sub) html += "</sub>";
             return html;
         }
-
-
 
         public static byte[] ToBinary(string imageDataHex)
         {
@@ -477,6 +601,51 @@ namespace Online_Examination_Admin
             Passage passage = new Passage(this);
             passage.ShowDialog();
         }
+
+        private void radioButton1_CheckedChanged(object sender, EventArgs e)
+        {
+            if (btn_addupdate.Text == "Add") return;
+            NameValueCollection data = new NameValueCollection();
+            data["setid"] = m_setid.ToString();
+            data["qsn"] = (m_currentid + 1).ToString();
+            data["option"] = "0";
+            Post(ADDR + "admin/setanswer.php", data);
+        }
+        private void radioButton2_CheckedChanged(object sender, EventArgs e)
+        {
+            if (btn_addupdate.Text == "Add") return;
+            NameValueCollection data = new NameValueCollection();
+            data["setid"] = m_setid.ToString();
+            data["qsn"] = (m_currentid + 1).ToString();
+            data["option"] = "1";
+            Post(ADDR + "admin/setanswer.php", data);
+        }
+
+        private void radioButton3_CheckedChanged(object sender, EventArgs e)
+        {
+            if (btn_addupdate.Text == "Add") return;
+            NameValueCollection data = new NameValueCollection();
+            data["setid"] = m_setid.ToString();
+            data["qsn"] = (m_currentid + 1).ToString();
+            data["option"] = "2";
+            Post(ADDR + "admin/setanswer.php", data);
+        }
+
+        private void radioButton4_CheckedChanged(object sender, EventArgs e)
+        {
+            if (btn_addupdate.Text == "Add") return;
+            NameValueCollection data = new NameValueCollection();
+            data["setid"] = m_setid.ToString();
+            data["qsn"] = (m_currentid + 1).ToString();
+            data["option"] = "3";
+            Post(ADDR + "admin/setanswer.php", data);
+        }
+
+        private void button1_Click_1(object sender, EventArgs e)
+        {
+            rtb_question.Rtf = rtb_optiona.Rtf = rtb_optionb.Rtf = rtb_optionc.Rtf = rtb_optiond.Rtf = "";
+        }
+
 
     }
 

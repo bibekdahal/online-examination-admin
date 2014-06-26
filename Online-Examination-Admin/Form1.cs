@@ -46,8 +46,8 @@ namespace Online_Examination_Admin
                 int id = Convert.ToInt32(setid);
                 cb_sets.Items.Add(id);
             }
-            if (cb_sets.Items.Count > 0) { cb_sets.SelectedIndex = 0; button1.Enabled = true; }
-            else button1.Enabled = false;
+            if (cb_sets.Items.Count > 0) { cb_sets.SelectedIndex = cb_sets.Items.Count - 1; button1.Enabled = button3.Enabled = button4.Enabled = true; }
+            else { cb_sets.Text = "";  button1.Enabled = button4.Enabled = button3.Enabled = false; }
         }
 
         private void button2_Click(object sender, EventArgs e)
@@ -62,6 +62,28 @@ namespace Online_Examination_Admin
         {
             Question q = new Question((int)cb_sets.SelectedItem);
             q.Show();
+        }
+
+        private void button3_Click(object sender, EventArgs e)
+        {
+            if (MessageBox.Show("Are you sure you want delete this set: setid=" + cb_sets.SelectedItem.ToString() + " ?", "Online-Examination-Admin", MessageBoxButtons.YesNo) == System.Windows.Forms.DialogResult.Yes)
+            {
+                NameValueCollection data = new NameValueCollection();
+                data["setid"] = cb_sets.SelectedItem.ToString();
+                string response = Question.Post(ADDR + "admin/deleteset.php", data);
+                UpdateUI();
+            }
+        }
+
+        private void button4_Click(object sender, EventArgs e)
+        {
+            if (MessageBox.Show("Are you sure you want delete all sets ?", "Online-Examination-Admin", MessageBoxButtons.YesNo) == System.Windows.Forms.DialogResult.Yes)
+            {
+                NameValueCollection data = new NameValueCollection();
+                data["setid"] = "-1";
+                string response = Question.Post(ADDR + "admin/deleteset.php", data);
+                UpdateUI();
+            }
         }
     }
 }
